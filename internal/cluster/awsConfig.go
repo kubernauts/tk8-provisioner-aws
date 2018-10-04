@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/session"
 	petname "github.com/dustinkirkland/golang-petname"
-	"github.com/kubernauts/tk8/internal/templates"
+	"github.com/kubernauts/tk8-provisioner-aws/internal/templates"
 	"github.com/spf13/viper"
 )
 

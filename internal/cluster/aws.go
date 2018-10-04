@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubernauts/tk8/internal/templates"
+	"github.com/kubernauts/tk8-provisioner-aws/internal/templates"
 )
 
 var ec2IP string
