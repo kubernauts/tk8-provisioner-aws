@@ -216,10 +216,16 @@ func AWSScale() {
 	var confirmation string
 	// Scale the AWS infrastructure
 	fmt.Printf("\t\t===============Starting AWS Scaling====================\n\n")
+	_, osLabel := distSelect()
+	prepareConfigFiles(osLabel)
+	ExecuteTerraform("apply", "./inventory/"+Name+"/provisioner/")
+	mvHost := exec.Command("mv", "./inventory/hosts", "./inventory/"+Name+"/hosts")
+	mvHost.Run()
+	mvHost.Wait()
 
 	// Scale the Kubernetes cluster
 	fmt.Printf("\n\n\t\t===============Starting Kubernetes Scaling====================\n\n")
-	_, err := os.Stat("./inventory/" + Name + "/provisioner/hosts")
+	_, err := os.Stat("./inventory/" + Name + "/hosts")
 	ErrorCheck("No host file found.", err)
 	fmt.Printf("\n\nThis will overwrite the previous host file with a new one. Type \"yes\" to confirm:\n")
 	fmt.Scanln(&confirmation)
@@ -227,10 +233,9 @@ func AWSScale() {
 		fmt.Printf("Confirmation denied. Exiting...")
 		os.Exit(0)
 	}
-	ExecuteTerraform("apply", "./inventory/"+Name+"/provisioner/")
-	mvHost := exec.Command("mv", "./inventory/hosts", "./inventory/"+Name+"/hosts")
-	mvHost.Run()
-	mvHost.Wait()
+	cpHost := exec.Command("cp", "./inventory/"+Name+"/hosts", "./inventory/"+Name+"/installer/hosts")
+	cpHost.Run()
+	cpHost.Wait()
 	RunPlaybook("./inventory/"+Name+"/installer/", "scale.yml")
 
 	return
