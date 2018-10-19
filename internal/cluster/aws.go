@@ -226,7 +226,7 @@ func AWSScale() {
 
 	// Scale the Kubernetes cluster
 	fmt.Printf("\n\n\t\t===============Starting Kubernetes Scaling====================\n\n")
-	_, err := os.Stat("./inventory/" + Name + "/provisioner/hosts")
+	_, err := os.Stat("./inventory/" + common.Name + "/provisioner/hosts")
 	ErrorCheck("No host file found.", err)
 	fmt.Printf("\n\nThis will overwrite the previous host file with a new one. Type \"yes\" to confirm:\n")
 	fmt.Scanln(&confirmation)
