@@ -23,8 +23,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubernauts/tk8-provisioner-aws/internal/templates"
 	"github.com/kubernauts/tk8/pkg/common"
+	"github.com/kubernauts/tk8/pkg/installer"
+	"github.com/kubernauts/tk8/pkg/provisioner"
+	"github.com/kubernauts/tk8/pkg/templates"
 )
 
 var ec2IP string
@@ -56,26 +58,26 @@ func distSelect() (string, string) {
 
 func prepareConfigFiles(awsInstanceOS string) {
 	if awsInstanceOS == "custom" {
-		ParseTemplate(templates.CustomInfrastructure, "./inventory/"+common.Name+"/provisioner/create-infrastructure.tf", DistOSMap[awsInstanceOS])
+		templates.ParseTemplate(templates.CustomInfrastructure, "./inventory/"+common.Name+"/provisioner/create-infrastructure.tf", DistOSMap[awsInstanceOS])
 	} else {
-		ParseTemplate(templates.Infrastructure, "./inventory/"+common.Name+"/provisioner/create-infrastructure.tf", DistOSMap[awsInstanceOS])
+		templates.ParseTemplate(templates.Infrastructure, "./inventory/"+common.Name+"/provisioner/create-infrastructure.tf", DistOSMap[awsInstanceOS])
 	}
 
-	ParseTemplate(templates.Credentials, "./inventory/"+common.Name+"/provisioner/credentials.tfvars", GetCredentials())
-	ParseTemplate(templates.Variables, "./inventory/"+common.Name+"/provisioner/variables.tf", DistOSMap[awsInstanceOS])
-	ParseTemplate(templates.Terraform, "./inventory/"+common.Name+"/provisioner/terraform.tfvars", GetClusterConfig())
+	templates.ParseTemplate(templates.Credentials, "./inventory/"+common.Name+"/provisioner/credentials.tfvars", GetCredentials())
+	templates.ParseTemplate(templates.Variables, "./inventory/"+common.Name+"/provisioner/variables.tf", DistOSMap[awsInstanceOS])
+	templates.ParseTemplate(templates.Terraform, "./inventory/"+common.Name+"/provisioner/terraform.tfvars", GetClusterConfig())
 }
 
 func prepareInventoryGroupAllFile(fileName string) *os.File {
 	groupVars, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY, 0600)
-	ErrorCheck("Error while trying to open "+fileName+": %v.", err)
+	common.ErrorCheck("Error while trying to open "+fileName+": %v.", err)
 	return groupVars
 }
 
 func prepareInventoryClusterFile(fileName string) *os.File {
 	k8sClusterFile, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY, 0600)
 	defer k8sClusterFile.Close()
-	ErrorCheck("Error while trying to open "+fileName+": %v.", err)
+	common.ErrorCheck("Error while trying to open "+fileName+": %v.", err)
 	fmt.Fprintf(k8sClusterFile, "kubeconfig_localhost: true\n")
 	return k8sClusterFile
 }
@@ -90,12 +92,12 @@ func AWSCreate() {
 		fmt.Printf("Prepairing Setup for user %s on %s\n", sshUser, osLabel)
 		os.MkdirAll("./inventory/"+common.Name+"/provisioner", 0755)
 		err := exec.Command("cp", "-rfp", "./kubespray/contrib/terraform/aws/.", "./inventory/"+common.Name+"/provisioner").Run()
-		ErrorCheck("provisioner could not provided: %v", err)
+		common.ErrorCheck("provisioner could not provided: %v", err)
 		prepareConfigFiles(osLabel)
-		ExecuteTerraform("init", "./inventory/"+common.Name+"/provisioner/")
+		provisioner.ExecuteTerraform("init", "./inventory/"+common.Name+"/provisioner/")
 	}
 
-	ExecuteTerraform("apply", "./inventory/"+common.Name+"/provisioner/")
+	provisioner.ExecuteTerraform("apply", "./inventory/"+common.Name+"/provisioner/")
 
 	// waiting for Loadbalancer and other not completed stuff
 	fmt.Println("Infrastructure is upcoming.")
@@ -107,7 +109,7 @@ func AWSCreate() {
 // AWSInstall is used for installing Kubernetes on the available infrastructure.
 func AWSInstall() {
 	// check if ansible is installed
-	DependencyCheck("ansible")
+	common.DependencyCheck("ansible")
 
 	// Copy the configuraton files as indicated in the kubespray docs
 	if _, err := os.Stat("./inventory/" + common.Name + "/installer"); err == nil {
@@ -168,7 +170,7 @@ func AWSInstall() {
 			elbName := strings.TrimSpace(string(elbNameRaw))
 			fmt.Println(elbName)
 			node, err := net.LookupHost(elbName)
-			ErrorCheck("Error resolving ELB name: %v", err)
+			common.ErrorCheck("Error resolving ELB name: %v", err)
 			elbIP := node[0]
 			fmt.Println(node)
 
@@ -186,7 +188,8 @@ func AWSInstall() {
 		}
 	}
 
-	RunPlaybook("./inventory/"+common.Name+"/installer/", "cluster.yml")
+	sshUser, osLabel := distSelect()
+	installer.RunPlaybook("./inventory/"+common.Name+"/installer/", "cluster.yml", sshUser, osLabel)
 
 	return
 }
@@ -198,13 +201,13 @@ func AWSDestroy() {
 		fmt.Println("Credentials file already exists, creation skipped")
 	} else {
 
-		ParseTemplate(templates.Credentials, "./inventory/"+common.Name+"/provisioner/credentials.tfvars", GetCredentials())
+		templates.ParseTemplate(templates.Credentials, "./inventory/"+common.Name+"/provisioner/credentials.tfvars", GetCredentials())
 	}
 	cpHost := exec.Command("cp", "./inventory/"+common.Name+"/hosts", "./inventory/hosts")
 	cpHost.Run()
 	cpHost.Wait()
 
-	ExecuteTerraform("destroy", "./inventory/"+common.Name+"/provisioner/")
+	provisioner.ExecuteTerraform("destroy", "./inventory/"+common.Name+"/provisioner/")
 
 	exec.Command("rm", "./inventory/hosts").Run()
 	exec.Command("rm", "-rf", "./inventory/"+common.Name).Run()
@@ -217,9 +220,9 @@ func AWSScale() {
 	var confirmation string
 	// Scale the AWS infrastructure
 	fmt.Printf("\t\t===============Starting AWS Scaling====================\n\n")
-	_, osLabel := distSelect()
+	sshUser, osLabel := distSelect()
 	prepareConfigFiles(osLabel)
-	ExecuteTerraform("apply", "./inventory/"+common.Name+"/provisioner/")
+	provisioner.ExecuteTerraform("apply", "./inventory/"+common.Name+"/provisioner/")
 	mvHost := exec.Command("mv", "./inventory/hosts", "./inventory/"+common.Name+"/provisioner/hosts")
 	mvHost.Run()
 	mvHost.Wait()
@@ -227,7 +230,7 @@ func AWSScale() {
 	// Scale the Kubernetes cluster
 	fmt.Printf("\n\n\t\t===============Starting Kubernetes Scaling====================\n\n")
 	_, err := os.Stat("./inventory/" + common.Name + "/provisioner/hosts")
-	ErrorCheck("No host file found.", err)
+	common.ErrorCheck("No host file found.", err)
 	fmt.Printf("\n\nThis will overwrite the previous host file with a new one. Type \"yes\" to confirm:\n")
 	fmt.Scanln(&confirmation)
 	if confirmation != "yes" {
@@ -237,14 +240,15 @@ func AWSScale() {
 	cpHost := exec.Command("cp", "./inventory/"+common.Name+"/provisioner/hosts", "./inventory/"+common.Name+"/installer/hosts")
 	cpHost.Run()
 	cpHost.Wait()
-	RunPlaybook("./inventory/"+common.Name+"/installer/", "scale.yml")
+	installer.RunPlaybook("./inventory/"+common.Name+"/installer/", "scale.yml", sshUser, osLabel)
 
 	return
 }
 
 // AWSReset is used to reset the Kubernetes on your AWS infrastructure.
 func AWSReset() {
-	RunPlaybook("./inventory/"+common.Name+"/installer/", "reset.yml")
+	sshUser, osLabel := distSelect()
+	installer.RunPlaybook("./inventory/"+common.Name+"/installer/", "reset.yml", sshUser, osLabel)
 
 	AWSInstall()
 	return
@@ -252,5 +256,6 @@ func AWSReset() {
 
 // AWSRemove is used to remove Kubernetes from your AWS infrastructure
 func AWSRemove() {
-	RunPlaybook("./inventory/"+common.Name+"/installer/", "reset.yml")
+	sshUser, osLabel := distSelect()
+	installer.RunPlaybook("./inventory/"+common.Name+"/installer/", "reset.yml", sshUser, osLabel)
 }
