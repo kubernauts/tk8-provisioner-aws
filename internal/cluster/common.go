@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/template"
+	"github.com/kubernauts/tk8/pkg/common"
 	"github.com/spf13/viper"
 )
 
@@ -231,9 +232,9 @@ func NotImplemented() {
 }
 
 func SetClusterName() {
-	if len(Name) < 1 {
+	if len(common.Name) < 1 {
 		config := GetClusterConfig()
-		Name = config.AwsClusterName
+		common.Name = config.AwsClusterName
 	}
 }
 

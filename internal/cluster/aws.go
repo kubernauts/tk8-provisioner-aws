@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/kubernauts/tk8-provisioner-aws/internal/templates"
+	"github.com/kubernauts/tk8/pkg/common"
 )
 
 var ec2IP string
@@ -55,14 +56,14 @@ func distSelect() (string, string) {
 
 func prepareConfigFiles(awsInstanceOS string) {
 	if awsInstanceOS == "custom" {
-		ParseTemplate(templates.CustomInfrastructure, "./inventory/"+Name+"/provisioner/create-infrastructure.tf", DistOSMap[awsInstanceOS])
+		ParseTemplate(templates.CustomInfrastructure, "./inventory/"+common.Name+"/provisioner/create-infrastructure.tf", DistOSMap[awsInstanceOS])
 	} else {
-		ParseTemplate(templates.Infrastructure, "./inventory/"+Name+"/provisioner/create-infrastructure.tf", DistOSMap[awsInstanceOS])
+		ParseTemplate(templates.Infrastructure, "./inventory/"+common.Name+"/provisioner/create-infrastructure.tf", DistOSMap[awsInstanceOS])
 	}
 
-	ParseTemplate(templates.Credentials, "./inventory/"+Name+"/provisioner/credentials.tfvars", GetCredentials())
-	ParseTemplate(templates.Variables, "./inventory/"+Name+"/provisioner/variables.tf", DistOSMap[awsInstanceOS])
-	ParseTemplate(templates.Terraform, "./inventory/"+Name+"/provisioner/terraform.tfvars", GetClusterConfig())
+	ParseTemplate(templates.Credentials, "./inventory/"+common.Name+"/provisioner/credentials.tfvars", GetCredentials())
+	ParseTemplate(templates.Variables, "./inventory/"+common.Name+"/provisioner/variables.tf", DistOSMap[awsInstanceOS])
+	ParseTemplate(templates.Terraform, "./inventory/"+common.Name+"/provisioner/terraform.tfvars", GetClusterConfig())
 }
 
 func prepareInventoryGroupAllFile(fileName string) *os.File {
@@ -87,14 +88,14 @@ func AWSCreate() {
 	} else {
 		sshUser, osLabel := distSelect()
 		fmt.Printf("Prepairing Setup for user %s on %s\n", sshUser, osLabel)
-		os.MkdirAll("./inventory/"+Name+"/provisioner", 0755)
-		err := exec.Command("cp", "-rfp", "./kubespray/contrib/terraform/aws/.", "./inventory/"+Name+"/provisioner").Run()
+		os.MkdirAll("./inventory/"+common.Name+"/provisioner", 0755)
+		err := exec.Command("cp", "-rfp", "./kubespray/contrib/terraform/aws/.", "./inventory/"+common.Name+"/provisioner").Run()
 		ErrorCheck("provisioner could not provided: %v", err)
 		prepareConfigFiles(osLabel)
-		ExecuteTerraform("init", "./inventory/"+Name+"/provisioner/")
+		ExecuteTerraform("init", "./inventory/"+common.Name+"/provisioner/")
 	}
 
-	ExecuteTerraform("apply", "./inventory/"+Name+"/provisioner/")
+	ExecuteTerraform("apply", "./inventory/"+common.Name+"/provisioner/")
 
 	// waiting for Loadbalancer and other not completed stuff
 	fmt.Println("Infrastructure is upcoming.")
@@ -112,26 +113,26 @@ func AWSInstall() {
 	if _, err := os.Stat("./inventory/" + Name + "/installer"); err == nil {
 		fmt.Println("Configuration folder already exists")
 	} else {
-		os.MkdirAll("./inventory/"+Name+"/installer", 0755)
-		mvHost := exec.Command("mv", "./inventory/hosts", "./inventory/"+Name+"/hosts")
+		os.MkdirAll("./inventory/"+common.Name+"/installer", 0755)
+		mvHost := exec.Command("mv", "./inventory/hosts", "./inventory/"+common.Name+"/hosts")
 		mvHost.Run()
 		mvHost.Wait()
-		mvShhBastion := exec.Command("cp", "./kubespray/ssh-bastion.conf", "./inventory/"+Name+"/ssh-bastion.conf")
+		mvShhBastion := exec.Command("cp", "./kubespray/ssh-bastion.conf", "./inventory/"+common.Name+"/ssh-bastion.conf")
 		mvShhBastion.Run()
 		mvShhBastion.Wait()
-		//os.MkdirAll("./inventory/"+Name+"/installer/group_vars", 0755)
-		cpSample := exec.Command("cp", "-rfp", "./kubespray/inventory/sample/.", "./inventory/"+Name+"/installer/")
+		//os.MkdirAll("./inventory/"+common.Name+"/installer/group_vars", 0755)
+		cpSample := exec.Command("cp", "-rfp", "./kubespray/inventory/sample/.", "./inventory/"+common.Name+"/installer/")
 		cpSample.Run()
 		cpSample.Wait()
 
-		cpKube := exec.Command("cp", "-rfp", "./kubespray/.", "./inventory/"+Name+"/installer/")
+		cpKube := exec.Command("cp", "-rfp", "./kubespray/.", "./inventory/"+common.Name+"/installer/")
 		cpKube.Run()
 		cpKube.Wait()
 
-		mvInstallerHosts := exec.Command("cp", "./inventory/"+Name+"/hosts", "./inventory/"+Name+"/installer/hosts")
+		mvInstallerHosts := exec.Command("cp", "./inventory/"+common.Name+"/hosts", "./inventory/"+common.Name+"/installer/hosts")
 		mvInstallerHosts.Run()
 		mvInstallerHosts.Wait()
-		mvProvisionerHosts := exec.Command("cp", "./inventory/"+Name+"/hosts", "./inventory/"+Name+"/installer/hosts")
+		mvProvisionerHosts := exec.Command("cp", "./inventory/"+common.Name+"/hosts", "./inventory/"+common.Name+"/installer/hosts")
 		mvProvisionerHosts.Run()
 		mvProvisionerHosts.Wait()
 
@@ -140,7 +141,7 @@ func AWSInstall() {
 
 		//Start Kubernetes Installation
 		//Enable load balancer api access and copy the kubeconfig file locally
-		loadBalancerName, err := exec.Command("sh", "-c", "grep apiserver_loadbalancer_domain_name= ./inventory/"+Name+"/installer/hosts | cut -d'=' -f2").CombinedOutput()
+		loadBalancerName, err := exec.Command("sh", "-c", "grep apiserver_loadbalancer_domain_name= ./inventory/"+common.Name+"/installer/hosts | cut -d'=' -f2").CombinedOutput()
 
 		if err != nil {
 			fmt.Println("Problem getting the load balancer domain name", err)
@@ -161,7 +162,7 @@ func AWSInstall() {
 			defer groupVars.Close()
 			// Resolve Load Balancer Domain Name and pick the first IP
 
-			elbNameRaw, _ := exec.Command("sh", "-c", "grep apiserver_loadbalancer_domain_name= ./inventory/"+Name+"/installer/hosts | cut -d'=' -f2 | sed 's/\"//g'").CombinedOutput()
+			elbNameRaw, _ := exec.Command("sh", "-c", "grep apiserver_loadbalancer_domain_name= ./inventory/"+common.Name+"/installer/hosts | cut -d'=' -f2 | sed 's/\"//g'").CombinedOutput()
 
 			// Convert the Domain name to string, strip all spaces so that Lookup does not return errors
 			elbName := strings.TrimSpace(string(elbNameRaw))
@@ -185,7 +186,7 @@ func AWSInstall() {
 		}
 	}
 
-	RunPlaybook("./inventory/"+Name+"/installer/", "cluster.yml")
+	RunPlaybook("./inventory/"+common.Name+"/installer/", "cluster.yml")
 
 	return
 }
@@ -197,16 +198,16 @@ func AWSDestroy() {
 		fmt.Println("Credentials file already exists, creation skipped")
 	} else {
 
-		ParseTemplate(templates.Credentials, "./inventory/"+Name+"/provisioner/credentials.tfvars", GetCredentials())
+		ParseTemplate(templates.Credentials, "./inventory/"+common.Name+"/provisioner/credentials.tfvars", GetCredentials())
 	}
-	cpHost := exec.Command("cp", "./inventory/"+Name+"/hosts", "./inventory/hosts")
+	cpHost := exec.Command("cp", "./inventory/"+common.Name+"/hosts", "./inventory/hosts")
 	cpHost.Run()
 	cpHost.Wait()
 
-	ExecuteTerraform("destroy", "./inventory/"+Name+"/provisioner/")
+	ExecuteTerraform("destroy", "./inventory/"+common.Name+"/provisioner/")
 
 	exec.Command("rm", "./inventory/hosts").Run()
-	exec.Command("rm", "-rf", "./inventory/"+Name).Run()
+	exec.Command("rm", "-rf", "./inventory/"+common.Name).Run()
 
 	return
 }
@@ -218,8 +219,8 @@ func AWSScale() {
 	fmt.Printf("\t\t===============Starting AWS Scaling====================\n\n")
 	_, osLabel := distSelect()
 	prepareConfigFiles(osLabel)
-	ExecuteTerraform("apply", "./inventory/"+Name+"/provisioner/")
-	mvHost := exec.Command("mv", "./inventory/hosts", "./inventory/"+Name+"/provisioner/hosts")
+	ExecuteTerraform("apply", "./inventory/"+common.Name+"/provisioner/")
+	mvHost := exec.Command("mv", "./inventory/hosts", "./inventory/"+common.Name+"/provisioner/hosts")
 	mvHost.Run()
 	mvHost.Wait()
 
@@ -233,22 +234,23 @@ func AWSScale() {
 		fmt.Printf("Confirmation denied. Exiting...")
 		os.Exit(0)
 	}
-	cpHost := exec.Command("cp", "./inventory/"+Name+"/provisioner/hosts", "./inventory/"+Name+"/installer/hosts")
+	cpHost := exec.Command("cp", "./inventory/"+common.Name+"/provisioner/hosts", "./inventory/"+common.Name+"/installer/hosts")
 	cpHost.Run()
 	cpHost.Wait()
-	RunPlaybook("./inventory/"+Name+"/installer/", "scale.yml")
+	RunPlaybook("./inventory/"+common.Name+"/installer/", "scale.yml")
 
 	return
 }
 
 // AWSReset is used to reset the Kubernetes on your AWS infrastructure.
 func AWSReset() {
-	RunPlaybook("./inventory/"+Name+"/installer/", "reset.yml")
+	RunPlaybook("./inventory/"+common.Name+"/installer/", "reset.yml")
+
 	AWSInstall()
 	return
 }
 
 // AWSRemove is used to remove Kubernetes from your AWS infrastructure
 func AWSRemove() {
-	RunPlaybook("./inventory/"+Name+"/installer/", "reset.yml")
+	RunPlaybook("./inventory/"+common.Name+"/installer/", "reset.yml")
 }
