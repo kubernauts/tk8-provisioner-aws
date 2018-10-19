@@ -83,7 +83,7 @@ func prepareInventoryClusterFile(fileName string) *os.File {
 // AWSCreate is used to create a infrastructure on AWS.
 func AWSCreate() {
 
-	if _, err := os.Stat("./inventory/" + Name + "/provisioner/.terraform"); err == nil {
+	if _, err := os.Stat("./inventory/" + common.Name + "/provisioner/.terraform"); err == nil {
 		fmt.Println("Configuration folder already exists")
 	} else {
 		sshUser, osLabel := distSelect()
@@ -110,7 +110,7 @@ func AWSInstall() {
 	DependencyCheck("ansible")
 
 	// Copy the configuraton files as indicated in the kubespray docs
-	if _, err := os.Stat("./inventory/" + Name + "/installer"); err == nil {
+	if _, err := os.Stat("./inventory/" + common.Name + "/installer"); err == nil {
 		fmt.Println("Configuration folder already exists")
 	} else {
 		os.MkdirAll("./inventory/"+common.Name+"/installer", 0755)
@@ -150,14 +150,14 @@ func AWSInstall() {
 			//Make a copy of kubeconfig on Ansible host
 			if kubesprayVersion == "develop" {
 				// Set Kube Network Proxy
-				SetNetworkPlugin("./inventory/" + Name + "/installer/group_vars/k8s-cluster")
-				prepareInventoryClusterFile("./inventory/" + Name + "/installer/group_vars/k8s-cluster/k8s-cluster.yml")
-				groupVars = prepareInventoryGroupAllFile("./inventory/" + Name + "/installer/group_vars/all/all.yml")
+				SetNetworkPlugin("./inventory/" + common.Name + "/installer/group_vars/k8s-cluster")
+				prepareInventoryClusterFile("./inventory/" + common.Name + "/installer/group_vars/k8s-cluster/k8s-cluster.yml")
+				groupVars = prepareInventoryGroupAllFile("./inventory/" + common.Name + "/installer/group_vars/all/all.yml")
 			} else {
 				// Set Kube Network Proxy
-				SetNetworkPlugin("./inventory/" + Name + "/installer/group_vars")
-				prepareInventoryClusterFile("./inventory/" + Name + "/installer/group_vars/k8s-cluster.yml")
-				groupVars = prepareInventoryGroupAllFile("./inventory/" + Name + "/installer/group_vars/all.yml")
+				SetNetworkPlugin("./inventory/" + common.Name + "/installer/group_vars")
+				prepareInventoryClusterFile("./inventory/" + common.Name + "/installer/group_vars/k8s-cluster.yml")
+				groupVars = prepareInventoryGroupAllFile("./inventory/" + common.Name + "/installer/group_vars/all.yml")
 			}
 			defer groupVars.Close()
 			// Resolve Load Balancer Domain Name and pick the first IP
@@ -194,7 +194,7 @@ func AWSInstall() {
 // AWSDestroy is used to destroy the infrastructure created.
 func AWSDestroy() {
 	// Check if credentials file exist, if it exists skip asking to input the AWS values
-	if _, err := os.Stat("./inventory/" + Name + "/provisioner/credentials.tfvars"); err == nil {
+	if _, err := os.Stat("./inventory/" + common.Name + "/provisioner/credentials.tfvars"); err == nil {
 		fmt.Println("Credentials file already exists, creation skipped")
 	} else {
 
