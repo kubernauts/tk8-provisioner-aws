@@ -1,6 +1,9 @@
 package provisioner
 
-import "github.com/kubernauts/tk8-provisioner-aws/internal/cluster"
+import (
+	"github.com/kubernauts/tk8-provisioner-aws/internal/cluster"
+	"github.com/kubernauts/tk8/pkg/provisioner"
+)
 
 type AWS struct {
 }
@@ -31,14 +34,14 @@ func (p AWS) Remove(args []string) {
 }
 
 func (p AWS) Upgrade(args []string) {
-	cluster.NotImplemented()
+	provisioner.NotImplemented()
 }
 
 func (p AWS) Destroy(args []string) {
 	cluster.AWSDestroy()
 }
 
-func NewAWS() cluster.Provisioner {
+func NewAWS() provisioner.Provisioner {
 	cluster.SetClusterName()
 	provisioner := new(AWS)
 	return provisioner
