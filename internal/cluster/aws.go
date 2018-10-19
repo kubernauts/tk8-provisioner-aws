@@ -241,12 +241,14 @@ func AWSScale() {
 	return
 }
 
-// AWSReset is used to reset the AWS infrastructure and removing Kubernetes from it.
+// AWSReset is used to reset the Kubernetes on your AWS infrastructure.
 func AWSReset() {
 	RunPlaybook("./inventory/"+Name+"/installer/", "reset.yml")
+	AWSInstall()
 	return
 }
 
+// AWSRemove is used to remove Kubernetes from your AWS infrastructure
 func AWSRemove() {
-	NotImplemented()
+	RunPlaybook("./inventory/"+Name+"/installer/", "reset.yml")
 }
