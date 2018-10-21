@@ -95,6 +95,7 @@ func GetCredentials() AwsCredentials {
 		AwsDefaultRegion: viper.GetString("aws.aws_default_region"),
 	}
 }
+
 func SetClusterName() {
 	if len(common.Name) < 1 {
 		config := GetClusterConfig()

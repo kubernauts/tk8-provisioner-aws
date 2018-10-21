@@ -84,7 +84,7 @@ func prepareInventoryClusterFile(fileName string) *os.File {
 
 // AWSCreate is used to create a infrastructure on AWS.
 func AWSCreate() {
-
+	SetClusterName()
 	if _, err := os.Stat("./inventory/" + common.Name + "/provisioner/.terraform"); err == nil {
 		fmt.Println("Configuration folder already exists")
 	} else {
@@ -110,7 +110,7 @@ func AWSCreate() {
 func AWSInstall() {
 	// check if ansible is installed
 	common.DependencyCheck("ansible")
-
+	SetClusterName()
 	// Copy the configuraton files as indicated in the kubespray docs
 	if _, err := os.Stat("./inventory/" + common.Name + "/installer"); err == nil {
 		fmt.Println("Configuration folder already exists")
@@ -196,6 +196,7 @@ func AWSInstall() {
 
 // AWSDestroy is used to destroy the infrastructure created.
 func AWSDestroy() {
+	SetClusterName()
 	// Check if credentials file exist, if it exists skip asking to input the AWS values
 	if _, err := os.Stat("./inventory/" + common.Name + "/provisioner/credentials.tfvars"); err == nil {
 		fmt.Println("Credentials file already exists, creation skipped")
@@ -217,7 +218,7 @@ func AWSDestroy() {
 
 // AWSScale is used to scale the AWS infrastructure and Kubernetes
 func AWSScale() {
-	var confirmation string
+	SetClusterName()
 	// Scale the AWS infrastructure
 	fmt.Printf("\t\t===============Starting AWS Scaling====================\n\n")
 	sshUser, osLabel := distSelect()
@@ -231,12 +232,6 @@ func AWSScale() {
 	fmt.Printf("\n\n\t\t===============Starting Kubernetes Scaling====================\n\n")
 	_, err := os.Stat("./inventory/" + common.Name + "/provisioner/hosts")
 	common.ErrorCheck("No host file found.", err)
-	fmt.Printf("\n\nThis will overwrite the previous host file with a new one. Type \"yes\" to confirm:\n")
-	fmt.Scanln(&confirmation)
-	if confirmation != "yes" {
-		fmt.Printf("Confirmation denied. Exiting...")
-		os.Exit(0)
-	}
 	cpHost := exec.Command("cp", "./inventory/"+common.Name+"/provisioner/hosts", "./inventory/"+common.Name+"/installer/hosts")
 	cpHost.Run()
 	cpHost.Wait()
@@ -247,6 +242,7 @@ func AWSScale() {
 
 // AWSReset is used to reset the Kubernetes on your AWS infrastructure.
 func AWSReset() {
+	SetClusterName()
 	sshUser, osLabel := distSelect()
 	installer.RunPlaybook("./inventory/"+common.Name+"/installer/", "reset.yml", sshUser, osLabel)
 
@@ -256,6 +252,7 @@ func AWSReset() {
 
 // AWSRemove is used to remove Kubernetes from your AWS infrastructure
 func AWSRemove() {
+	SetClusterName()
 	sshUser, osLabel := distSelect()
 	installer.RunPlaybook("./inventory/"+common.Name+"/installer/", "reset.yml", sshUser, osLabel)
 }
