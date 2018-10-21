@@ -227,7 +227,8 @@ func AWSScale() {
 	mvHost := exec.Command("mv", "./inventory/hosts", "./inventory/"+common.Name+"/provisioner/hosts")
 	mvHost.Run()
 	mvHost.Wait()
-
+	// waiting for Infrastructure
+	time.Sleep(30)
 	// Scale the Kubernetes cluster
 	fmt.Printf("\n\n\t\t===============Starting Kubernetes Scaling====================\n\n")
 	_, err := os.Stat("./inventory/" + common.Name + "/provisioner/hosts")
@@ -245,7 +246,8 @@ func AWSReset() {
 	SetClusterName()
 	sshUser, osLabel := distSelect()
 	installer.RunPlaybook("./inventory/"+common.Name+"/installer/", "reset.yml", sshUser, osLabel)
-
+	// waiting for Infrastructure
+	time.Sleep(30)
 	AWSInstall()
 	return
 }
