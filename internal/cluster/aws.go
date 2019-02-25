@@ -138,9 +138,6 @@ func AWSInstall() {
 		mvProvisionerHosts.Run()
 		mvProvisionerHosts.Wait()
 
-		// Check if Kubeadm is enabled
-		EnableKubeadm()
-
 		//Start Kubernetes Installation
 		//Enable load balancer api access and copy the kubeconfig file locally
 		loadBalancerName, err := exec.Command("sh", "-c", "grep apiserver_loadbalancer_domain_name= ./inventory/"+common.Name+"/installer/hosts | cut -d'=' -f2").CombinedOutput()
