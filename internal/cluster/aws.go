@@ -147,7 +147,7 @@ func AWSInstall() {
 		} else {
 			var groupVars *os.File
 			//Make a copy of kubeconfig on Ansible host
-			if kubesprayVersion == "develop" {
+			if kubesprayVersion == "develop" || kubesprayVersion == "version-0-7" {
 				// Set Kube Network Proxy
 				SetNetworkPlugin("./inventory/" + common.Name + "/installer/group_vars/k8s-cluster")
 				prepareInventoryClusterFile("./inventory/" + common.Name + "/installer/group_vars/k8s-cluster/k8s-cluster.yml")
